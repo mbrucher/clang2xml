@@ -35,6 +35,9 @@ class Level(int):
     def close(self, type):
         '''Closes an XML tag'''
         print '\t'*self + '</%s>' % type
+    def openclose(self, type, **kwargs):
+        self.open(type, **kwargs)
+        self.close(type)
  
 def is_valid_type(t):
     '''used to check if a cursor has a type'''
@@ -78,6 +81,15 @@ def is_named_scope(cursor):
         clang.cindex.CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
         )
 
+def semantic_parents(cursor):
+    import collections
+
+    p = collections.deque()
+    c = cursor.semantic_parent
+    while c and is_named_scope(c):
+        p.appendleft(c.displayname)
+        c = c.semantic_parent
+    return list(p)
 
 def retrieve_type(t):
     '''retrieve actual type'''
@@ -91,10 +103,12 @@ def retrieve_type(t):
             pointee = "&&"
         return retrieve_type(t.get_pointee()) + pointee + ' '.join(qualifiers(t))
     else:
-        if t.get_declaration().displayname != "":
-            return t.get_declaration().displayname
+        cursor = t.get_declaration()
+        parents = semantic_parents(cursor)
+        if cursor.displayname != "":
+            return "::".join(parents + [cursor.displayname])
         else:
-            return mangle_type(str(t.kind).split(".")[-1])
+            return "::".join(parents + [mangle_type(str(t.kind).split(".")[-1])])
 
 authorized_decl = [
     "CXX_ACCESS_SPEC_DECL",
@@ -151,9 +165,9 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
         elif type == "STRUCT_DECL":
             attributes["access"] = "public"
         if type == "CXX_METHOD" or type == "FUNCTION_DECL":
-            show_type(cursor.result_type, level+1, 'return type:')
-            for arg in cursor.type.get_canonical().argument_types():
-              show_type(arg, level+1, "arg:")
+            level.openclose("result", displayname=retrieve_type(cursor.result_type), location=cursor.location)
+            for i, arg in enumerate(cursor.type.get_canonical().argument_types()):
+              level.openclose("arg%i" %i, displayname=retrieve_type(arg), location=arg.get_declaration().location)
         else:
             for c in cursor.get_children():
                 show_ast(c, filter_pred, level+1, attributes)
