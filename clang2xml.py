@@ -106,9 +106,9 @@ def retrieve_type(t):
         cursor = t.get_declaration()
         parents = semantic_parents(cursor)
         if cursor.displayname != "":
-            return "::".join(parents + [cursor.displayname])
+            return ' '.join(qualifiers(t)) + " " + "::".join(parents + [cursor.displayname])
         else:
-            return "::".join(parents + [mangle_type(str(t.kind).split(".")[-1])])
+            return ' '.join(qualifiers(t)) + " " + "::".join(parents + [mangle_type(str(t.kind).split(".")[-1])])
 
 authorized_decl = [
     "CXX_ACCESS_SPEC_DECL",
