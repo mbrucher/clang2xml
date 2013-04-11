@@ -51,7 +51,34 @@ def qualifiers(t):
 def show_type(t, level, title):
     '''pretty print type AST'''
     level.show(title, retrieve_type(t))
- 
+
+def is_definition(cursor):
+    ''' Returns true if the cursor is the definition '''
+    return (
+        (cursor.is_definition() and not cursor.kind in (
+            clang.cindex.CursorKind.CXX_ACCESS_SPEC_DECL,
+            clang.cindex.CursorKind.TEMPLATE_TYPE_PARAMETER,
+            clang.cindex.CursorKind.UNEXPOSED_DECL,
+            )) or
+        cursor.kind in (
+            clang.cindex.CursorKind.FUNCTION_DECL,
+            clang.cindex.CursorKind.CXX_METHOD,
+            clang.cindex.CursorKind.FUNCTION_TEMPLATE,
+            ))
+
+def is_named_scope(cursor):
+    ''' Returns true if the cursor is a name declaration   '''
+    return cursor.kind in (
+        clang.cindex.CursorKind.NAMESPACE,
+        clang.cindex.CursorKind.STRUCT_DECL,
+        clang.cindex.CursorKind.UNION_DECL,
+        clang.cindex.CursorKind.ENUM_DECL,
+        clang.cindex.CursorKind.CLASS_DECL,
+        clang.cindex.CursorKind.CLASS_TEMPLATE,
+        clang.cindex.CursorKind.CLASS_TEMPLATE_PARTIAL_SPECIALIZATION,
+        )
+
+
 def retrieve_type(t):
     '''retrieve actual type'''
     if is_valid_type(t.get_pointee()):
@@ -73,10 +100,15 @@ authorized_decl = [
     "CXX_ACCESS_SPEC_DECL",
     "CXX_METHOD",
     "CLASS_DECL",
+    "CLASS_TEMPLATE_PARTIAL_SPECIALIZATION",
+    "CLASS_DECL",
+    "ENUM_DECL",
     "FIELD_DECL",
+    "FUNCTION_DECL",
     "NAMESPACE",
     "STRUCT_DECL",
     "TRANSLATION_UNIT",
+    "UNION_DECL",
     ]
 
 printable_types = {
@@ -118,9 +150,9 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
             attributes["access"] = "private"
         elif type == "STRUCT_DECL":
             attributes["access"] = "public"
-        if type == "CXX_METHOD":
+        if type == "CXX_METHOD" or type == "FUNCTION_DECL":
             show_type(cursor.result_type, level+1, 'return type:')
-            for arg in cursor.type.argument_types():
+            for arg in cursor.type.get_canonical().argument_types():
               show_type(arg, level+1, "arg:")
         else:
             for c in cursor.get_children():
