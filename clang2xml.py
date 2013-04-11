@@ -151,7 +151,6 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
         type = str(cursor.kind).split(".")[-1]
         level1 = level+1
         if type not in authorized_decl:
-            print "discarding cursor type %s" % type
             return
         if type == "CXX_ACCESS_SPEC_DECL":
             config = clang.cindex.Config()
@@ -168,7 +167,7 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
         if type == "CXX_METHOD" or type == "FUNCTION_DECL":
             level1.openclose("result", displayname=retrieve_type(cursor.result_type), location=cursor.location)
             for i, arg in enumerate(cursor.get_arguments()):
-              level1.openclose("arg%i" %i, displayname=retrieve_type(arg.type), location=arg.location)
+              level1.openclose("arg%i" %i, displayname=retrieve_type(arg.type), name=arg.displayname, location=arg.location)
         else:
             for c in cursor.get_children():
                 show_ast(c, filter_pred, level1, attributes)
