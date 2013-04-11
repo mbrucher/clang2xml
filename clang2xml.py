@@ -149,6 +149,7 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
     '''pretty print cursor AST'''
     if filter_pred(cursor, level):
         type = str(cursor.kind).split(".")[-1]
+        level1 = level+1
         if type not in authorized_decl:
             print "discarding cursor type %s" % type
             return
@@ -158,19 +159,19 @@ def show_ast(cursor, filter_pred=verbose, level=Level(), inherited_attributes={}
             return
         level.open(type, spelling=cursor.spelling, displayname=cursor.displayname, location=cursor.location, **inherited_attributes)
         if is_valid_type(cursor.type):
-            show_type(cursor.type.get_canonical(), level+1, 'type:')
+            level1.openclose("type", displayname=retrieve_type(cursor.type.get_canonical()), location=cursor.location)
         attributes = {}
         if type == "CLASS_DECL":
             attributes["access"] = "private"
         elif type == "STRUCT_DECL":
             attributes["access"] = "public"
         if type == "CXX_METHOD" or type == "FUNCTION_DECL":
-            level.openclose("result", displayname=retrieve_type(cursor.result_type), location=cursor.location)
-            for i, arg in enumerate(cursor.type.get_canonical().argument_types()):
-              level.openclose("arg%i" %i, displayname=retrieve_type(arg), location=arg.get_declaration().location)
+            level1.openclose("result", displayname=retrieve_type(cursor.result_type), location=cursor.location)
+            for i, arg in enumerate(cursor.get_arguments()):
+              level1.openclose("arg%i" %i, displayname=retrieve_type(arg.type), location=arg.location)
         else:
             for c in cursor.get_children():
-                show_ast(c, filter_pred, level+1, attributes)
+                show_ast(c, filter_pred, level1, attributes)
         level.close(type)
  
 if __name__ == '__main__':
